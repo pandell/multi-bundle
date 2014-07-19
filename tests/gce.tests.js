@@ -7,14 +7,14 @@ var assert = require("assert");
 
 var gcp = require("../lib/gce");
 
-describe("gcp", function () {
+describe("gce", function () {
 
-    it("returns greatest common path", function () {
+    it("returns greatest common element", function () {
         assert.deepEqual(gcp([ ["a", "b"], ["a"]]), "a");
         assert.deepEqual(gcp([ ["a", "b"], ["a", "b", "c"]]), "b");
     });
 
-    it("returns null if no common path", function () {
+    it("returns null if no common element", function () {
         assert.deepEqual(gcp([ ["a", "b"], ["c"]]), null);
         assert.deepEqual(gcp([ [], ["a"]]), null);
         assert.deepEqual(gcp([ [], []]), null);
