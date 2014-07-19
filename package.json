@@ -1,0 +1,43 @@
+{
+  "name": "multi-bundle",
+  "version": "0.0.0",
+  "description": "Multiple browserify bundles with nested common dependencies",
+  "main": "index.js",
+  "scripts": {
+    "test": "gulp test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/pandell/multi-bundle"
+  },
+  "keywords": [
+    "browserify-tool",
+    "multi-bundle",
+    "common"
+  ],
+  "author": {
+    "name": "Pandell Technology",
+    "url": "http://pandell.com/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pandell/multi-bundle/issues"
+  },
+  "homepage": "https://github.com/pandell/multi-bundle",
+  "dependencies": {
+    "deps-topo-sort": "^0.2.0",
+    "lodash.isplainobject": "^2.4.1",
+    "module-deps": "^2.1",
+    "ramda": "^0.2",
+    "readable-stream": "^1.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.8",
+    "gulp-jshint": "^1.7",
+    "gulp-jslint-simple": "0.*",
+    "gulp-mocha": "0.*",
+    "gulp-taskfromstreams": "0.*",
+    "monitorctrlc": "0.*",
+    "through2": "^0.5.1"
+  }
+}
