@@ -4,6 +4,7 @@
 
 var path = require("path");
 
+var clone = require("clone");
 var isPlainObject = require("lodash.isplainobject");
 var mdeps = require("module-deps");
 var R = require("ramda");
@@ -119,10 +120,6 @@ function concatDeps(config, opts, path) {
         return Rx.Node.fromStream(mdeps([].concat(entry), opts))
             .map(R.mixin({ path: path.concat(name) }));
     }), R.keys(config));
-}
-
-function clone(obj) {
-    return JSON.parse(JSON.stringify(obj));
 }
 
 module.exports = function createMultiBundle(entryConfig, opts, cb) {
