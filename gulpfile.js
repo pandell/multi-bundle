@@ -2,17 +2,15 @@
 
 "use strict";
 
-var concat = require("concat-stream");
+var exec = require("child_process").exec;
 var gulp = require("gulp");
 var jshint = require("gulp-jshint");
 var jslint = require("gulp-jslint-simple");
 var monitorCtrlC = require("monitorctrlc");
-var R = require("ramda");
-var spawn = require("child_process").spawn;
 var taskFromStreams = require("gulp-taskfromstreams");
 
 var srcFiles = "{.,./lib}/*.js*";
-var testFiles = "tests/*.js";
+var testFiles = "tests/*.tests.js";
 
 gulp.task("lint", taskFromStreams(function () {
     return [
@@ -23,14 +21,13 @@ gulp.task("lint", taskFromStreams(function () {
     ];
 }));
 
-gulp.task("test", ["lint"], taskFromStreams(function () {
-    return [
-        gulp.src(testFiles, { read: false }),
-        concat(function (files) {
-            spawn("node", ["tests/run.js"].concat(R.pluck("path", files)), { stdio: "inherit" });
-        })
-    ];
-}));
+gulp.task("test", ["lint"], function (cb) {
+    exec("node tests/run.js '" + testFiles + "'", function (err, stdout) {
+        if (err) { return cb(err); }
+        process.stdout.write(stdout);
+        cb();
+    });
+});
 
 gulp.task("watch", function () {
     monitorCtrlC();
