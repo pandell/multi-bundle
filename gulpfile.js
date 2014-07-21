@@ -2,11 +2,13 @@
 
 "use strict";
 
+var concat = require("concat-stream");
 var gulp = require("gulp");
 var jshint = require("gulp-jshint");
 var jslint = require("gulp-jslint-simple");
-var mocha = require("gulp-mocha");
 var monitorCtrlC = require("monitorctrlc");
+var R = require("ramda");
+var spawn = require("child_process").spawn;
 var taskFromStreams = require("gulp-taskfromstreams");
 
 var srcFiles = "{.,./lib}/*.js*";
@@ -23,8 +25,11 @@ gulp.task("lint", taskFromStreams(function () {
 
 gulp.task("test", ["lint"], taskFromStreams(function () {
     return [
-        gulp.src(testFiles),
-        mocha({ reporter: "spec" })
+        gulp.src(testFiles, { read: false }),
+        concat(function (files) {
+            console.log(files);
+            spawn("node", ["tests/run.js"].concat(R.pluck("path", files)), { stdio: "inherit" });
+        })
     ];
 }));
 
