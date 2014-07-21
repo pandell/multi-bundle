@@ -27,7 +27,6 @@ gulp.task("test", ["lint"], taskFromStreams(function () {
     return [
         gulp.src(testFiles, { read: false }),
         concat(function (files) {
-            console.log(files);
             spawn("node", ["tests/run.js"].concat(R.pluck("path", files)), { stdio: "inherit" });
         })
     ];
