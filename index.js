@@ -1,8 +1,9 @@
-/*jslint node: true, vars: true */
+/*jslint node: true, nomen: true, vars: true, unparam: true */
 
 "use strict";
 
 var path = require("path");
+var util = require("util");
 
 var clone = require("clone");
 var isPlainObject = require("lodash.isplainobject");
@@ -25,56 +26,48 @@ var sort = require("./lib/toposort");
     },
     oneOff: "oneoff.js"
 }
-
-=>
-
-[
-    { name: "common", require: [...], external: [] },
-    { name: "group", require: [...], external: [(common)] },
-
-    { name: "start", entry: ["start.js"], external: [(common)] },
-    { name: "stop", entry: ["stop.js"], external: [(group), (common)] },
-    { name: "pause", entry: ["pause.js", "resume.js"], external: [(group), (common)] },
-    { name: "oneOff", entry: ["oneoff.js"], external: [] }
-]
-
-(foo) = deps from 'foo' group
 */
 
 function depsStream(deps) {
+    var s = new stream.PassThrough({ objectMode: true });
+    Rx.Node.writeToStream(deps, s);
+
     return function () {
-        var s = new stream.PassThrough();
-        Rx.Node.writeToStream(deps, s);
         return s;
     };
 }
 
-function buildEntryCompiler(deps, name, opts, cb) {
+function buildEntryCompiler(name, deps, opts, cb) {
     var ourDeps = deps
-        .filter(R.contains(name, R.prop("path")))
+        .filter(R.compose(R.contains(name), R.prop("level")))
         .share();
 
     var compiler = opts.browserify(R.mixin(opts, { deps: depsStream(ourDeps) }));
 
-    return ourDeps.distinct(R.prop("id")).do(function (row) {
-        if (row.external) {
-            compiler.external(row.id);
-        } else {
-            compiler.add(row.id);
+    return ourDeps.distinct(R.prop("id")).subscribe(
+        function onNext(row) {
+            console.log("row: ", util.inspect(row));
+            if (row.external) {
+                compiler.external(row.id);
+            } else if (row.entry) {
+                compiler.add(row.id);
+            }
+        },
+        cb, // onError
+        function onComplete() {
+            cb(null, { name: name, compiler: compiler });
         }
-    }).finally(function () {
-        cb(null, { name: name, compiler: compiler });
-    }).catch(cb);
+    );
 }
 
-function buildCommonCompiler(deps, name, opts, cb) {
+function buildCommonCompiler(name, deps, opts, cb) {
 
     function exceedsThreshold(ctx, row) {
-        return (ctx.rows[row.id].length > opts.threshold && gce(R.pluck("path", ctx.rows[row.id])) === name) || ctx.ensureCommon[row.id];
+        return (ctx.rows[row.id].length > opts.threshold && gce(R.pluck("level", ctx.rows[row.id])) === name) || ctx.ensureCommon[row.id];
     }
 
     var ourDeps = deps
-        .filter(R.contains(name, R.prop("path")))
+        .filter(R.compose(R.contains(name), R.prop("level")))
         .share();
 
     return ourDeps.aggregate({ rows: {}, ensureCommon: {} }, function (ctx, row) {
@@ -110,16 +103,30 @@ function buildCommonCompiler(deps, name, opts, cb) {
     }).catch(cb);
 }
 
+function buildCompilers(config, deps, opts, cb) {
+    R.each(function (name) {
+        var entry = config[name];
+        if (isPlainObject(entry)) {
+            console.log("building common compiler");
+            var childDeps = buildCommonCompiler(name, deps, opts, cb);
+            buildCompilers(entry, childDeps, opts, cb);
+        } else {
+            console.log("building entry compiler", name, opts);
+            buildEntryCompiler(name, deps, opts, cb);
+        }
+    }, R.keys(config));
+}
 
-function concatDeps(config, opts, path) {
+function concatDeps(config, opts, level) {
     return Rx.Observable.concat(R.map(function (name) {
         var entry = config[name];
         if (isPlainObject(entry)) {
-            return Rx.Observable.concat(concatDeps(entry, opts, path.concat(name)));
+            return Rx.Observable.concat(concatDeps(entry, opts, level.concat(name)));
         }
-        return Rx.Node.fromStream(mdeps([].concat(entry), opts))
-            .map(R.mixin({ path: path.concat(name) }));
-    }), R.keys(config));
+        var fullPath = path.resolve(opts.basedir || process.cwd(), entry);
+        var deps = mdeps([].concat(fullPath), opts);
+        return Rx.Node.fromStream(deps).map(R.mixin({ level: level.concat(name) }));
+    }, R.keys(config)));
 }
 
 module.exports = function createMultiBundle(entryConfig, opts, cb) {
@@ -140,7 +147,5 @@ module.exports = function createMultiBundle(entryConfig, opts, cb) {
     }
 
     var deps = sort(concatDeps(config, opts, []));
-
-    buildCommonCompiler(deps, 'a', opts, cb);
-    buildEntryCompiler(deps, 'a', opts, cb);
+    buildCompilers(config, deps, opts, cb);
 };
