@@ -10,7 +10,7 @@ var monitorCtrlC = require("monitorctrlc");
 var taskFromStreams = require("gulp-taskfromstreams");
 
 var srcFiles = "{.,./lib}/*.js*";
-var testFiles = "tests/*.tests.js";
+var testFiles = "tests/*.js";
 
 gulp.task("lint", taskFromStreams(function () {
     return [
@@ -22,7 +22,7 @@ gulp.task("lint", taskFromStreams(function () {
 }));
 
 gulp.task("test", ["lint"], function (cb) {
-    exec("node tests/run.js '" + testFiles + "'", function (err, stdout) {
+    exec("node run-tests.js '" + testFiles + "'", function (err, stdout) {
         if (err) { return cb(err); }
         process.stdout.write(stdout);
         cb();

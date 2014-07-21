@@ -2,6 +2,8 @@
 
 "use strict";
 
+var path = require("path");
+
 var test = require("tape");
 var concat = require("concat-stream");
 var R = require("ramda");
@@ -29,13 +31,17 @@ BrowserifyMock.prototype.external = function (file) {
     this.externals.push(file);
 };
 
+var resolve = R.map(path.resolve);
+
 test("multi-bundle", function (t) {
 
     t.test("for a single entry point", function (t) {
 
+        var opts = { browserify: BrowserifyMock, basedir: __dirname };
+
         t.test("produces a single bundle", function (t) {
 
-            bundle("./fixtures/oneoff.js", { browserify: BrowserifyMock, basedir: __dirname }, function (err, res) {
+            bundle("./fixtures/oneoff.js", opts, function (err, res) {
                 t.error(err, "no errors");
                 t.equal(res.name, "oneoff", "name is basename without ext");
                 t.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
@@ -46,9 +52,9 @@ test("multi-bundle", function (t) {
 
         t.test("specifies dependencies correctly", function (t) {
 
-            bundle("./fixtures/oneoff.js", { browserify: BrowserifyMock, basedir: __dirname }, function (err, res) {
+            bundle("./fixtures/oneoff.js", opts, function (err, res) {
                 t.error(err, "no errors");
-                t.deepEqual(res.compiler.files, [__dirname + "/fixtures/oneoff.js"], "only entry module is added");
+                t.deepEqual(res.compiler.files, resolve([__dirname + "/fixtures/oneoff.js"]), "only entry module is added");
                 t.end();
             });
 
@@ -56,19 +62,19 @@ test("multi-bundle", function (t) {
 
         t.test("passes dependency stream to compiler options", function (t) {
 
-            bundle("./fixtures/oneoff.js", { browserify: BrowserifyMock, basedir: __dirname }, function (err, res) {
+            bundle("./fixtures/oneoff.js", opts, function (err, res) {
                 t.error(err, "no errors");
 
                 t.ok(res.compiler.opts.deps, "deps was specified");
                 t.equal(typeof res.compiler.opts.deps, "function", "deps is a function");
 
                 res.compiler.opts.deps().pipe(concat(function (deps) {
-                    t.deepEqual(R.pluck("id", deps), [
+                    t.deepEqual(R.pluck("id", deps), resolve([
                         __dirname + "/fixtures/z.js",
                         __dirname + "/fixtures/a.js",
                         __dirname + "/fixtures/d.js",
                         __dirname + "/fixtures/oneoff.js"
-                    ], "all deps are included");
+                    ]), "all deps are included");
 
                     t.end();
                 }));

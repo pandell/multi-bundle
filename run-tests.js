@@ -8,6 +8,9 @@ var test = require("tape");
 
 test.createStream().pipe(faucet()).pipe(process.stdout);
 
-glob.sync(process.argv[2]).forEach(function (p) {
+var testPattern = process.argv[2];
+var matches = glob.sync(testPattern.replace(/['"]/g, ""));
+
+matches.forEach(function (p) {
     require(path.resolve(p));
 });
