@@ -39,7 +39,20 @@ var resolve = R.map(R.compose(path.resolve, function (p) { return __dirname + "/
 
 //-----------------------------------------------
 function subscribe(observable, onNext, done) {
-    observable.subscribe(onNext, done, done);
+    var error;
+    observable.subscribe(
+        function (res) {
+            try {
+                onNext(res);
+            } catch (e) {
+                error = e;
+            }
+        },
+        done,
+        function () {
+            done(error);
+        }
+    );
 }
 
 //-----------------------------------------------
