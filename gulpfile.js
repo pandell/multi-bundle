@@ -2,10 +2,10 @@
 
 "use strict";
 
-var exec = require("child_process").exec;
 var gulp = require("gulp");
 var jshint = require("gulp-jshint");
 var jslint = require("gulp-jslint-simple");
+var mocha = require("gulp-mocha");
 var monitorCtrlC = require("monitorctrlc");
 var taskFromStreams = require("gulp-taskfromstreams");
 
@@ -21,13 +21,12 @@ gulp.task("lint", taskFromStreams(function () {
     ];
 }));
 
-gulp.task("test", ["lint"], function (cb) {
-    exec("node run-tests.js '" + testFiles + "'", function (err, stdout, stderr) {
-        process.stdout.write(stdout);
-        process.stderr.write(stderr);
-        cb(err ? "Test failure" : null);
-    });
-});
+gulp.task("test", ["lint"], taskFromStreams(function () {
+    return [
+        gulp.src(testFiles),
+        mocha({ reporter: "spec" })
+    ];
+}));
 
 gulp.task("watch", function () {
     monitorCtrlC();

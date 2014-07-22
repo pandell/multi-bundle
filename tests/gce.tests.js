@@ -1,24 +1,23 @@
 /*jslint node: true, vars: true */
+/*global describe: false, it: false */
 
 "use strict";
 
-var test = require("tape");
+var assert = require("assert");
 
 var gcp = require("../lib/gce");
 
-test("gce", function (t) {
+describe("gce", function () {
 
-    t.test("returns greatest common element", function (t) {
-        t.deepEqual(gcp([ ["a", "b"], ["a"]]), "a");
-        t.deepEqual(gcp([ ["a", "b"], ["a", "b", "c"]]), "b");
-        t.end();
+    it("returns greatest common element", function () {
+        assert.deepEqual(gcp([ ["a", "b"], ["a"]]), "a");
+        assert.deepEqual(gcp([ ["a", "b"], ["a", "b", "c"]]), "b");
     });
 
-    t.test("returns null if no common element", function (t) {
-        t.deepEqual(gcp([ ["a", "b"], ["c"]]), null);
-        t.deepEqual(gcp([ [], ["a"]]), null);
-        t.deepEqual(gcp([ [], []]), null);
-        t.end();
+    it("returns null if no common element", function () {
+        assert.deepEqual(gcp([ ["a", "b"], ["c"]]), null);
+        assert.deepEqual(gcp([ [], ["a"]]), null);
+        assert.deepEqual(gcp([ [], []]), null);
     });
 
 });

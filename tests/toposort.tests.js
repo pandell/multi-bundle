@@ -1,17 +1,18 @@
 /*jslint node: true, vars: true */
+/*global describe: false, it: false */
 
 "use strict";
 
-var test = require("tape");
+var assert = require("assert");
 
 var R = require("ramda");
 var Rx = require("rx");
 
 var sort = require("../lib/toposort");
 
-test("toposort", function (t) {
+describe("toposort", function () {
 
-    t.test("sorts modules topologically", function (t) {
+    it("sorts modules topologically", function (done) {
         var deps = Rx.Observable.fromArray([
             {
                 id: "main.css",
@@ -32,11 +33,11 @@ test("toposort", function (t) {
 
         var result = sort(deps).toArray();
         result.subscribe(function (r) {
-            t.deepEqual(R.pluck("id", r), ["x.css", "0.css", "z.css", "main.css"]);
-        }, t.error, t.end);
+            assert.deepEqual(R.pluck("id", r), ["x.css", "0.css", "z.css", "main.css"]);
+        }, done, done);
     });
 
-    t.test("handles circular deps", function (t) {
+    it("handles circular deps", function (done) {
         var deps = Rx.Observable.fromArray([
             {
                 id: "main.css",
@@ -51,8 +52,8 @@ test("toposort", function (t) {
         var result = sort(deps).toArray();
 
         result.subscribe(function (r) {
-            t.deepEqual(R.pluck("id", r), ["z.css", "main.css"]);
-        }, t.error, t.end);
+            assert.deepEqual(R.pluck("id", r), ["z.css", "main.css"]);
+        }, done, done);
     });
 
 });

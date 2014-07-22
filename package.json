@@ -34,14 +34,11 @@
   },
   "devDependencies": {
     "concat-stream": "^1.4",
-    "faucet": "0.*",
-    "glob": "^4.0",
     "gulp": "^3.8",
     "gulp-jshint": "^1.7",
     "gulp-jslint-simple": "0.*",
     "gulp-mocha": "0.*",
     "gulp-taskfromstreams": "0.*",
-    "monitorctrlc": "0.*",
-    "tape": "^2.13"
+    "monitorctrlc": "0.*"
   }
 }

@@ -1,10 +1,11 @@
 /*jslint node: true, vars: true, nomen: true */
+/*global describe: false, it: false */
 
 "use strict";
 
+var assert = require("assert");
 var path = require("path");
 
-var test = require("tape");
 var concat = require("concat-stream");
 var R = require("ramda");
 var Rx = require("rx");
@@ -37,101 +38,105 @@ BrowserifyMock.prototype.external = function (file) {
 var resolve = R.map(R.compose(path.resolve, function (p) { return __dirname + "/fixtures/" + p; }));
 
 //-----------------------------------------------
-function assert(t, observable, onNext) {
-    observable.subscribe(onNext, t.error, t.end);
+function subscribe(observable, onNext, done) {
+    observable.subscribe(onNext, done, done);
 }
 
 //-----------------------------------------------
-test("multi-bundle", function (t) {
+describe("multi-bundle", function () {
 
     //-------------------------------------------
-    t.test("for a single entry point", function (t) {
+    describe("for a single entry point", function () {
 
         var opts = { browserify: BrowserifyMock, basedir: __dirname };
 
         //---------------------------------------
-        t.test("produces a single bundle", function (t) {
-            assert(t, Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts)), function (res) {
-                t.equal(res.name, "oneoff", "name is basename without ext");
-                t.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
-            });
+        it("produces a single bundle", function (done) {
+            var observable = Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts));
+
+            subscribe(observable, function (res) {
+                assert.strictEqual(res.name, "oneoff", "name is basename without ext");
+                assert.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
+            }, done);
         });
 
         //---------------------------------------
-        t.test("includes entry modules with no externals", function (t) {
-            assert(t, Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts)), function (res) {
-                t.deepEqual(res.compiler.files, resolve(["oneoff.js"]), "only entry module is added");
-                t.deepEqual(res.compiler.externals, [], "no externals are added");
-            });
+        it("includes entry modules with no externals", function (done) {
+            var observable = Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts));
+
+            subscribe(observable, function (res) {
+                assert.deepEqual(res.compiler.files, resolve(["oneoff.js"]), "only entry module is added");
+                assert.deepEqual(res.compiler.externals, [], "no externals are added");
+            }, done);
         });
 
         //---------------------------------------
-        t.test("passes dependency stream to compiler options", function (t) {
+        it("passes dependency stream to compiler options", function (done) {
+            var observable = Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts));
 
-            assert(t, Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts)), function (res) {
-                t.ok(res.compiler.opts.deps, "deps was specified");
-                t.equal(typeof res.compiler.opts.deps, "function", "deps is a function");
+            subscribe(observable, function (res) {
+                assert.ok(res.compiler.opts.deps, "deps was specified");
+                assert.strictEqual(typeof res.compiler.opts.deps, "function", "deps is a function");
 
                 res.compiler.opts.deps().pipe(concat(function (deps) {
-                    t.deepEqual(
+                    assert.deepEqual(
                         R.pluck("id", deps),
                         resolve(["z.js", "a.js", "d.js", "oneoff.js"]),
                         "all deps are included"
                     );
                 }));
-            });
-
+            }, done);
         });
 
     });
 
     //-------------------------------------------
-    t.test("for an array entry point", function (t) {
+    describe("for an array entry point", function () {
 
         var opts = { browserify: BrowserifyMock, basedir: __dirname };
 
         //---------------------------------------
-        t.test("produces a single bundle", function (t) {
+        it("produces a single bundle", function (done) {
             var observable = Rx.Node.fromStream(bundle(["./fixtures/a.js", "./fixtures/b.js"], opts));
 
-            assert(t, observable, function (res) {
-                t.equal(res.name, "bundle", "name is 'bundle'");
-                t.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
-            });
+            subscribe(observable, function (res) {
+                assert.strictEqual(res.name, "bundle", "name is 'bundle'");
+                assert.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
+            }, done);
         });
 
         //---------------------------------------
-        t.test("includes entry modules with no externals", function (t) {
+        it("includes entry modules with no externals", function (done) {
             var observable = Rx.Node.fromStream(bundle(["./fixtures/a.js", "./fixtures/b.js"], opts));
 
-            assert(t, observable, function (res) {
-                t.deepEqual(res.compiler.files, resolve(["a.js", "b.js"]), "only entry modules are added");
-                t.deepEqual(res.compiler.externals, [], "no externals are added");
-            });
+            subscribe(observable, function (res) {
+                assert.deepEqual(res.compiler.files, resolve(["a.js", "b.js"]), "only entry modules are added");
+                assert.deepEqual(res.compiler.externals, [], "no externals are added");
+            }, done);
         });
 
         //---------------------------------------
-        t.test("passes dependency stream to compiler options", function (t) {
+        it("passes dependency stream to compiler options", function (done) {
             var observable = Rx.Node.fromStream(bundle(["./fixtures/a.js", "./fixtures/b.js"], opts));
 
-            assert(t, observable, function (res) {
-                t.ok(res.compiler.opts.deps, "deps was specified");
-                t.equal(typeof res.compiler.opts.deps, "function", "deps is a function");
+            subscribe(observable, function (res) {
+                assert.ok(res.compiler.opts.deps, "deps was specified");
+                assert.strictEqual(typeof res.compiler.opts.deps, "function", "deps is a function");
 
                 res.compiler.opts.deps().pipe(concat(function (deps) {
-                    t.deepEqual(
+                    assert.deepEqual(
                         R.pluck("id", deps),
                         resolve(["z.js", "a.js", "y.js", "b.js"]),
                         "all deps are included"
                     );
                 }));
-            });
+            }, done);
         });
 
     });
 
     //-------------------------------------------
-    t.test("for a nested set of entry points", function (t) {
+    describe("for a nested set of entry points", function () {
 
         var opts = { browserify: BrowserifyMock, basedir: __dirname };
         var entryConfig = {
@@ -146,7 +151,7 @@ test("multi-bundle", function (t) {
         };
 
         //---------------------------------------
-        t.test("produces common and entry bundles", function (t) {
+        it("produces common and entry bundles", function (done) {
             // depth-first traversal
             var names = ["common", "start", "group", "stop", "pause", "oneoff"];
 
@@ -155,16 +160,16 @@ test("multi-bundle", function (t) {
                 Rx.Observable.fromArray(names)
             );
 
-            assert(t, observable, function (arr) {
+            subscribe(observable, function (arr) {
                 var res = arr[0], expectedName = arr[1];
-                t.ok(res, "has result");
-                t.equal(res.name, expectedName, "name is '" + expectedName + "'");
-                t.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
-            });
+                assert.ok(res, "has result");
+                assert.strictEqual(res.name, expectedName, "name is '" + expectedName + "'");
+                assert.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
+            }, done);
         });
 
         //---------------------------------------
-        t.test("includes entry modules with correct externals", function (t) {
+        it("includes entry modules with correct externals", function (done) {
             var expected = {
                 "start": {
                     files: resolve(["start.js"]),
@@ -187,14 +192,14 @@ test("multi-bundle", function (t) {
             var observable = Rx.Node.fromStream(bundle(entryConfig, opts))
                 .filter(function (res) { return !!expected[res.name]; });
 
-            assert(t, observable, function (res) {
-                t.deepEqual(res.compiler.files, expected[res.name].files, res.name + ": only entry modules are added");
-                t.deepEqual(res.compiler.externals, expected[res.name].externals, res.name + ": external dependencies are marked");
-            });
+            subscribe(observable, function (res) {
+                assert.deepEqual(res.compiler.files, expected[res.name].files, res.name + ": only entry modules are added");
+                assert.deepEqual(res.compiler.externals, expected[res.name].externals, res.name + ": external dependencies are marked");
+            }, done);
         });
 
         //---------------------------------------
-        t.test("requires common dependencies with correct externals", function (t) {
+        it("requires common dependencies with correct externals", function (done) {
             var expected = {
                 "common": {
                     requires: resolve(["z.js", "a.js"]),
@@ -209,15 +214,15 @@ test("multi-bundle", function (t) {
             var observable = Rx.Node.fromStream(bundle(entryConfig, opts))
                 .filter(function (res) { return !!expected[res.name]; });
 
-            assert(t, observable, function (res) {
-                t.deepEqual(res.compiler.files, [], res.name + ": no entry modules are added");
-                t.deepEqual(res.compiler.requires, expected[res.name].requires, res.name + ": required dependencies are added");
-                t.deepEqual(res.compiler.externals, expected[res.name].externals, res.name + ": external dependencies are marked");
-            });
+            subscribe(observable, function (res) {
+                assert.deepEqual(res.compiler.files, [], res.name + ": no entry modules are added");
+                assert.deepEqual(res.compiler.requires, expected[res.name].requires, res.name + ": required dependencies are added");
+                assert.deepEqual(res.compiler.externals, expected[res.name].externals, res.name + ": external dependencies are marked");
+            }, done);
         });
 
         //---------------------------------------
-        t.test("passes dependency stream to compiler options", function (t) {
+        it("passes dependency stream to compiler options", function (done) {
             var expected = {
                 "common": resolve(["z.js", "a.js"]),
                 "group": resolve(["z.js", "a.js", "y.js", "b.js"]),
@@ -229,14 +234,14 @@ test("multi-bundle", function (t) {
 
             var observable = Rx.Node.fromStream(bundle(entryConfig, opts));
 
-            assert(t, observable, function (res) {
-                t.ok(res.compiler.opts.deps, "deps was specified");
-                t.equal(typeof res.compiler.opts.deps, "function", "deps is a function");
+            subscribe(observable, function (res) {
+                assert.ok(res.compiler.opts.deps, "deps was specified");
+                assert.strictEqual(typeof res.compiler.opts.deps, "function", "deps is a function");
 
                 res.compiler.opts.deps().pipe(concat(function (deps) {
-                    t.deepEqual(R.pluck("id", deps), expected[res.name], res.name + ": all deps are included");
+                    assert.deepEqual(R.pluck("id", deps), expected[res.name], res.name + ": all deps are included");
                 }));
-            });
+            }, done);
 
         });
 
