@@ -278,4 +278,48 @@ describe("multi-bundle", function () {
 
     });
 
+    //-------------------------------------------
+    describe("for a different threshold values", function () {
+
+        var opts = { browserify: BrowserifyMock, basedir: __dirname };
+        var entryConfig = {
+            "common": {
+                "a": "./fixtures/a.js",
+                "b": "./fixtures/b.js",
+                "x": "./fixtures/x.js"
+            }
+        };
+
+        //---------------------------------------
+        it("collects any shared dependencies with threshold=1", function (done) {
+            var expected = {
+                "common": resolve(["z.js", "y.js"])
+            };
+
+            var observable = Rx.Node.fromStream(multi(entryConfig, R.mixin({ threshold: 1 }, opts)).stream())
+                .filter(function (res) { return !!expected[res.name]; });
+
+            subscribe(observable, function (res) {
+                assert.deepEqual(res.compiler.requires, expected[res.name]);
+                assert.deepEqual(res.compiler.externals, []);
+            }, done);
+        });
+
+        //---------------------------------------
+        it("collects dependencies shared more than twice with threshold=2", function (done) {
+            var expected = {
+                "common": resolve(["z.js"])
+            };
+
+            var observable = Rx.Node.fromStream(multi(entryConfig, R.mixin({ threshold: 2 }, opts)).stream())
+                .filter(function (res) { return !!expected[res.name]; });
+
+            subscribe(observable, function (res) {
+                assert.deepEqual(res.compiler.requires, expected[res.name]);
+                assert.deepEqual(res.compiler.externals, []);
+            }, done);
+        });
+
+    });
+
 });
