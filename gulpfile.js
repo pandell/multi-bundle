@@ -57,7 +57,11 @@ gulp.task("example", ["lint", "test", "clean"], taskFromStreams(function () {
     var m = multi(entryConfig, { browserify: browserify });
 
     return [
-        m.bundle({ objectMode: true, debug: true }, function (name) { return source(name + ".js"); }),
+        m.bundle({
+            objectMode: true,
+            debug: true,
+            pipeTo: function (name) { return source(name + ".js"); }
+        }),
         gulp.dest(exampleOut)
     ];
 }));

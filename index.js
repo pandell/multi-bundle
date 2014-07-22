@@ -132,20 +132,21 @@ function concatDeps(config, opts, level) {
 }
 
 //-----------------------------------------------
-function bundleCompilers(compilers, opts, nameTransform) {
-    if (typeof opts === "function") {
-        nameTransform = opts;
-        opts = {};
-    }
+function bundleCompilers(compilers, opts) {
+    if (!opts) { opts = {}; }
 
+    var transforms = [].concat(opts.pipeTo || []);
     var s = stream.PassThrough({ objectMode: !!opts.objectMode });
+
     Rx.Node.writeToStream(
         compilers.flatMap(function (res) {
             var bundle = res.compiler.bundle(opts);
 
-            return Rx.Node.fromStream(typeof nameTransform === "function"
-                ? bundle.pipe(nameTransform(res.name))
-                : bundle);
+            return Rx.Node.fromStream(
+                R.reduce(function (b, t) {
+                    return b.pipe(t(res.name, res.compiler));
+                }, bundle, transforms)
+            );
         }),
         s
     );
