@@ -25,31 +25,30 @@ function depsStream(deps) {
 }
 
 //-----------------------------------------------
-function buildEntryCompiler(name, deps, opts, cb) {
+function buildEntryCompiler(name, deps, opts) {
     var ourDeps = deps
         .filter(R.compose(R.eq(name), R.last, R.prop("level")))
-        .distinct(R.prop("id"))
-        .share();
+        .distinct(R.prop("id"));
 
-    var compiler = opts.browserify(R.mixin(opts, { deps: depsStream(ourDeps) }));
-
-    return ourDeps.distinct(R.prop("id")).subscribe(
-        function onNext(row) {
-            if (row.external) {
-                compiler.external(row.id);
-            } else if (row.entry) {
-                compiler.add(row.id);
-            }
-        },
-        cb, // onError
-        function onComplete() {
-            cb(null, { name: name, compiler: compiler });
+    return ourDeps.distinct(R.prop("id")).aggregate({ externals: [], files: [] }, function (res, row) {
+        if (row.external) {
+            res.externals.push(row.id);
+        } else if (row.entry) {
+            res.files.push(row.id);
         }
-    );
+        return res;
+    }).map(function (res) {
+        var compiler = opts.browserify(R.mixin(opts, { deps: depsStream(ourDeps) }));
+
+        R.each(compiler.external.bind(compiler), res.externals);
+        R.each(compiler.add.bind(compiler), res.files);
+
+        return { name: name, compiler: compiler };
+    }).single();
 }
 
 //-----------------------------------------------
-function buildCommonCompiler(name, deps, opts, cb) {
+function buildCommonCompiler(name, deps, opts) {
 
     function exceedsThreshold(ctx, row) {
         return (ctx.rows[row.id].length > opts.threshold && gce(R.pluck("level", ctx.rows[row.id])) === name) || ctx.ensureCommon[row.id];
@@ -74,10 +73,17 @@ function buildCommonCompiler(name, deps, opts, cb) {
         }, rowValues);
 
         return { externals: externals, requires: requires, childDeps: childDeps };
-    }).single().share();
+    }).single();
 
-    commonDeps.subscribe(
-        function onNext(res) {
+    return {
+        children: commonDeps.flatMap(function (res) {
+            return Rx.Observable.fromArray([].concat(
+                res.externals,
+                R.map(R.mixin({ external: true }), res.requires),
+                res.childDeps
+            ));
+        }),
+        result: commonDeps.map(function (res) {
             var compiler = opts.browserify(R.mixin(opts, {
                 deps: depsStream(Rx.Observable.fromArray([].concat(res.externals, res.requires)).distinct(R.prop("id")))
             }));
@@ -85,32 +91,21 @@ function buildCommonCompiler(name, deps, opts, cb) {
             R.each(compiler.external.bind(compiler), R.uniq(R.pluck("id", res.externals)));
             R.each(compiler.require.bind(compiler), R.uniq(R.pluck("id", res.requires)));
 
-            cb(null, { name: name, compiler: compiler });
-        },
-        cb, // onError
-        null // onComplete
-    );
-
-    return commonDeps.flatMap(function (res) {
-        return Rx.Observable.fromArray([].concat(
-            res.externals,
-            R.map(R.mixin({ external: true }), res.requires),
-            res.childDeps
-        ));
-    });
+            return { name: name, compiler: compiler };
+        }).single()
+    };
 }
 
 //-----------------------------------------------
-function buildCompilers(config, deps, opts, cb) {
-    R.each(function (name) {
+function buildCompilers(config, deps, opts) {
+    return Rx.Observable.concat(R.map(function (name) {
         var entry = config[name];
         if (isPlainObject(entry)) {
-            var childDeps = buildCommonCompiler(name, deps, opts, cb);
-            buildCompilers(entry, childDeps, opts, cb);
-        } else {
-            buildEntryCompiler(name, deps, opts, cb);
+            var common = buildCommonCompiler(name, deps, opts);
+            return Rx.Observable.concat(common.result, buildCompilers(entry, common.children, opts));
         }
-    }, R.keys(config));
+        return buildEntryCompiler(name, deps, opts);
+    }, R.keys(config)));
 }
 
 //-----------------------------------------------
@@ -127,7 +122,7 @@ function concatDeps(config, opts, level) {
 }
 
 //-----------------------------------------------
-module.exports = function createMultiBundle(entryConfig, opts, cb) {
+module.exports = function createMultiBundle(entryConfig, opts) {
     var config = {};
 
     if (typeof entryConfig === "string") {
@@ -145,5 +140,8 @@ module.exports = function createMultiBundle(entryConfig, opts, cb) {
     }
 
     var deps = concatDeps(config, opts, []);
-    buildCompilers(config, deps, opts, cb);
+    var ee = Rx.Node.toEventEmitter(buildCompilers(config, deps, opts), "data");
+    ee.publish();
+
+    return ee;
 };
