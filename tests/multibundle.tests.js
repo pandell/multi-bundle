@@ -84,6 +84,16 @@ describe("multi-bundle", function () {
         });
 
         //---------------------------------------
+        it("passes options to compiler, omitting internals", function (done) {
+            var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", R.mixin(opts, { a: "a" })).stream());
+
+            subscribe(observable, function (res) {
+                var o = R.omit(["deps"], res.compiler.opts);
+                assert.deepEqual(o, { a: "a", basedir: __dirname }, "options match");
+            }, done);
+        });
+
+        //---------------------------------------
         it("passes dependency stream to compiler options", function (done) {
             var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", opts).stream());
 
@@ -231,6 +241,16 @@ describe("multi-bundle", function () {
                 assert.deepEqual(res.compiler.files, [], res.name + ": no entry modules are added");
                 assert.deepEqual(res.compiler.requires, expected[res.name].requires, res.name + ": required dependencies are added");
                 assert.deepEqual(res.compiler.externals, expected[res.name].externals, res.name + ": external dependencies are marked");
+            }, done);
+        });
+
+        //---------------------------------------
+        it("passes options to compiler, omitting internals", function (done) {
+            var observable = Rx.Node.fromStream(multi(entryConfig, R.mixin(opts, { a: "a" })).stream());
+
+            subscribe(observable, function (res) {
+                var o = R.omit(["deps"], res.compiler.opts);
+                assert.deepEqual(o, { a: "a", basedir: __dirname }, "options match");
             }, done);
         });
 

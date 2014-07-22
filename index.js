@@ -24,6 +24,9 @@ function depsStream(deps) {
 }
 
 //-----------------------------------------------
+var cleanOpts = R.omit(["browserify", "threshold"]);
+
+//-----------------------------------------------
 function buildEntryCompiler(name, deps, opts) {
     var ourDeps = deps
         .filter(R.compose(R.eq(name), R.last, R.prop("level")))
@@ -37,7 +40,7 @@ function buildEntryCompiler(name, deps, opts) {
         }
         return res;
     }).map(function (res) {
-        var compiler = opts.browserify(R.mixin(opts, { deps: depsStream(ourDeps) }));
+        var compiler = opts.browserify(R.mixin(cleanOpts(opts), { deps: depsStream(ourDeps) }));
 
         R.each(compiler.external.bind(compiler), res.externals);
         R.each(compiler.add.bind(compiler), res.files);
@@ -49,7 +52,7 @@ function buildEntryCompiler(name, deps, opts) {
 //-----------------------------------------------
 function buildCommonCompiler(name, deps, opts) {
     return deps.map(function (res) {
-        var compiler = opts.browserify(R.mixin(opts, {
+        var compiler = opts.browserify(R.mixin(cleanOpts(opts), {
             deps: depsStream(Rx.Observable.fromArray([].concat(res.externals, res.requires)).distinct(R.prop("id")))
         }));
 
