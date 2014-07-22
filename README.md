@@ -2,9 +2,9 @@
 
 > Produces multiple [browserify](http://browserify.org/) bundles and extracts common dependencies.
 
-[Git repository](https://github.com/pandell/gulp-taskfromstreams)
+[Git repository](https://github.com/pandell/multi-bundle)
 
-[Changelog](https://github.com/pandell/gulp-taskfromstreams/releases)
+[Changelog](https://github.com/pandell/multi-bundle/releases)
 
 multi-bundle is a frontend for browserify that automatically factors out common dependencies based on an arbitrarily nested entry point configuration that you provide.
 
