@@ -175,6 +175,9 @@ module.exports = function createMultiBundle(entryConfig, opts) {
         throw new Error("multi-bundle: expected 'entryConfig' to be a string, array of strings, or an object.");
     }
 
+    if (!opts) {
+        opts = {};
+    }
     if (!opts.threshold || opts.threshold < 1) {
         opts.threshold = 1;
     }
