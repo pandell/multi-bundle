@@ -177,6 +177,13 @@ module.exports = function createMultiBundle(entryConfig, opts) {
     if (!opts.threshold || opts.threshold < 1) {
         opts.threshold = 1;
     }
+    if (!opts.browserify) {
+        try {
+            opts.browserify = require("browserify");
+        } catch (e) {
+            throw new Error("multi-bundle: expected either 'opts.browserify' to be set or an npm dependency on 'browserify'.");
+        }
+    }
 
     var deps = concatDeps(config, opts, []);
     var compilers = buildCompilers(config, deps, opts);
