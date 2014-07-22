@@ -33,12 +33,15 @@
     "rx": "^2.2"
   },
   "devDependencies": {
+    "browserify": "^4.2",
     "concat-stream": "^1.4",
     "gulp": "^3.8",
     "gulp-jshint": "^1.7",
     "gulp-jslint-simple": "0.*",
     "gulp-mocha": "0.*",
+    "gulp-rimraf": "0.*",
     "gulp-taskfromstreams": "0.*",
-    "monitorctrlc": "0.*"
+    "monitorctrlc": "0.*",
+    "vinyl-source-stream": "0.*"
   }
 }
