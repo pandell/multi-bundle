@@ -36,12 +36,14 @@ $ npm install --save-dev multi-bundle
 The above will produce 6 bundle streams in total.
 
 Entry points:
+
 1. `start`
 1. `stop`
 1. `pause`
 1. `oneoff`
 
 Shared bundles:
+
 1. `common`: contains all common dependencies between `start`, `control`, `stop`, and `pause`
 1. `control`: contains common dependencies shared by `stop` and `pause` but not `start`
 
