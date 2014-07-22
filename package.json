@@ -25,7 +25,6 @@
   },
   "homepage": "https://github.com/pandell/multi-bundle",
   "dependencies": {
-    "clone": "^0.1",
     "lodash.isplainobject": "^2.4",
     "module-deps": "^2.1",
     "ramda": "^0.2",

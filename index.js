@@ -4,7 +4,6 @@
 
 var path = require("path");
 
-var clone = require("clone");
 var isPlainObject = require("lodash.isplainobject");
 var mdeps = require("module-deps");
 var R = require("ramda");
@@ -167,7 +166,7 @@ module.exports = function createMultiBundle(entryConfig, opts) {
     } else if (Array.isArray(entryConfig)) {
         config.bundle = R.clone(entryConfig);
     } else if (isPlainObject(entryConfig)) {
-        config = clone(entryConfig);
+        config = entryConfig;
     } else {
         throw new Error("multi-bundle: expected 'entryConfig' to be a string, array of strings, or an object.");
     }
