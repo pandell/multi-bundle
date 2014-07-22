@@ -30,7 +30,7 @@ function buildEntryCompiler(name, deps, opts) {
         .filter(R.compose(R.eq(name), R.last, R.prop("level")))
         .distinct(R.prop("id"));
 
-    return ourDeps.distinct(R.prop("id")).aggregate({ externals: [], files: [] }, function (res, row) {
+    return ourDeps.aggregate({ externals: [], files: [] }, function (res, row) {
         if (row.external) {
             res.externals.push(row.id);
         } else if (row.entry) {
@@ -49,12 +49,37 @@ function buildEntryCompiler(name, deps, opts) {
 
 //-----------------------------------------------
 function buildCommonCompiler(name, deps, opts) {
+    return deps.map(function (res) {
+        var compiler = opts.browserify(R.mixin(opts, {
+            deps: depsStream(Rx.Observable.fromArray([].concat(res.externals, res.requires)).distinct(R.prop("id")))
+        }));
+
+        R.each(compiler.external.bind(compiler), R.uniq(R.pluck("id", res.externals)));
+        R.each(compiler.require.bind(compiler), R.uniq(R.pluck("id", res.requires)));
+
+        return { name: name, compiler: compiler };
+    }).single();
+}
+
+//-----------------------------------------------
+function getChildDeps(commonDeps) {
+    return commonDeps.flatMap(function (res) {
+        return Rx.Observable.fromArray([].concat(
+            res.externals,
+            R.map(R.mixin({ external: true }), res.requires),
+            res.childDeps
+        ));
+    });
+}
+
+//-----------------------------------------------
+function getCommonDeps(name, deps, opts) {
 
     function exceedsThreshold(ctx, row) {
         return (ctx.rows[row.id].length > opts.threshold && gce(R.pluck("level", ctx.rows[row.id])) === name) || ctx.ensureCommon[row.id];
     }
 
-    var commonDeps = deps.filter(R.compose(R.contains(name), R.prop("level"))).aggregate({ rows: {}, ensureCommon: {} }, function (ctx, row) {
+    return deps.filter(R.compose(R.contains(name), R.prop("level"))).aggregate({ rows: {}, ensureCommon: {} }, function (ctx, row) {
         if (!ctx.rows[row.id]) {
             ctx.rows[row.id] = [];
         }
@@ -74,26 +99,6 @@ function buildCommonCompiler(name, deps, opts) {
 
         return { externals: externals, requires: requires, childDeps: childDeps };
     }).single();
-
-    return {
-        children: commonDeps.flatMap(function (res) {
-            return Rx.Observable.fromArray([].concat(
-                res.externals,
-                R.map(R.mixin({ external: true }), res.requires),
-                res.childDeps
-            ));
-        }),
-        result: commonDeps.map(function (res) {
-            var compiler = opts.browserify(R.mixin(opts, {
-                deps: depsStream(Rx.Observable.fromArray([].concat(res.externals, res.requires)).distinct(R.prop("id")))
-            }));
-
-            R.each(compiler.external.bind(compiler), R.uniq(R.pluck("id", res.externals)));
-            R.each(compiler.require.bind(compiler), R.uniq(R.pluck("id", res.requires)));
-
-            return { name: name, compiler: compiler };
-        }).single()
-    };
 }
 
 //-----------------------------------------------
@@ -101,8 +106,11 @@ function buildCompilers(config, deps, opts) {
     return Rx.Observable.concat(R.map(function (name) {
         var entry = config[name];
         if (isPlainObject(entry)) {
-            var common = buildCommonCompiler(name, deps, opts);
-            return Rx.Observable.concat(common.result, buildCompilers(entry, common.children, opts));
+            var commonDeps = getCommonDeps(name, deps, opts);
+            return Rx.Observable.concat(
+                buildCommonCompiler(name, commonDeps, opts),
+                buildCompilers(entry, getChildDeps(commonDeps), opts)
+            );
         }
         return buildEntryCompiler(name, deps, opts);
     }, R.keys(config)));
