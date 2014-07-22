@@ -22,8 +22,9 @@ gulp.task("lint", taskFromStreams(function () {
 }));
 
 gulp.task("test", ["lint"], function (cb) {
-    exec("node run-tests.js '" + testFiles + "'", function (err, stdout) {
+    exec("node run-tests.js '" + testFiles + "'", function (err, stdout, stderr) {
         process.stdout.write(stdout);
+        process.stderr.write(stderr);
         cb(err ? "Test failure" : null);
     });
 });
