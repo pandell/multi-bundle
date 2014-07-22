@@ -68,7 +68,7 @@ describe("multi-bundle", function () {
             var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", opts).stream());
 
             subscribe(observable, function (res) {
-                assert.strictEqual(res.name, "oneoff", "name is basename without ext");
+                assert.strictEqual(res.name, "oneoff");
                 assert.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
             }, done);
         });
@@ -78,8 +78,8 @@ describe("multi-bundle", function () {
             var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", opts).stream());
 
             subscribe(observable, function (res) {
-                assert.deepEqual(res.compiler.files, resolve(["oneoff.js"]), "only entry module is added");
-                assert.deepEqual(res.compiler.externals, [], "no externals are added");
+                assert.deepEqual(res.compiler.files, resolve(["oneoff.js"]));
+                assert.deepEqual(res.compiler.externals, []);
             }, done);
         });
 
@@ -89,7 +89,7 @@ describe("multi-bundle", function () {
 
             subscribe(observable, function (res) {
                 var o = R.omit(["deps"], res.compiler.opts);
-                assert.deepEqual(o, { a: "a", basedir: __dirname }, "options match");
+                assert.deepEqual(o, { a: "a", basedir: __dirname });
             }, done);
         });
 
@@ -104,8 +104,7 @@ describe("multi-bundle", function () {
                 res.compiler.opts.deps().pipe(concat(function (deps) {
                     assert.deepEqual(
                         R.pluck("id", deps),
-                        resolve(["z.js", "a.js", "d.js", "oneoff.js"]),
-                        "all deps are included"
+                        resolve(["z.js", "a.js", "d.js", "oneoff.js"])
                     );
                 }));
             }, done);
@@ -123,7 +122,7 @@ describe("multi-bundle", function () {
             var observable = Rx.Node.fromStream(multi(["./fixtures/a.js", "./fixtures/b.js"], opts).stream());
 
             subscribe(observable, function (res) {
-                assert.strictEqual(res.name, "bundle", "name is 'bundle'");
+                assert.strictEqual(res.name, "bundle");
                 assert.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
             }, done);
         });
@@ -133,8 +132,8 @@ describe("multi-bundle", function () {
             var observable = Rx.Node.fromStream(multi(["./fixtures/a.js", "./fixtures/b.js"], opts).stream());
 
             subscribe(observable, function (res) {
-                assert.deepEqual(res.compiler.files, resolve(["a.js", "b.js"]), "only entry modules are added");
-                assert.deepEqual(res.compiler.externals, [], "no externals are added");
+                assert.deepEqual(res.compiler.files, resolve(["a.js", "b.js"]));
+                assert.deepEqual(res.compiler.externals, []);
             }, done);
         });
 
@@ -149,8 +148,7 @@ describe("multi-bundle", function () {
                 res.compiler.opts.deps().pipe(concat(function (deps) {
                     assert.deepEqual(
                         R.pluck("id", deps),
-                        resolve(["z.js", "a.js", "y.js", "b.js"]),
-                        "all deps are included"
+                        resolve(["z.js", "a.js", "y.js", "b.js"])
                     );
                 }));
             }, done);
@@ -186,7 +184,7 @@ describe("multi-bundle", function () {
             subscribe(observable, function (arr) {
                 var res = arr[0], expectedName = arr[1];
                 assert.ok(res, "has result");
-                assert.strictEqual(res.name, expectedName, "name is '" + expectedName + "'");
+                assert.strictEqual(res.name, expectedName);
                 assert.ok(res.compiler instanceof BrowserifyMock, "compiler is mocked instance");
             }, done);
         });
@@ -216,8 +214,8 @@ describe("multi-bundle", function () {
                 .filter(function (res) { return !!expected[res.name]; });
 
             subscribe(observable, function (res) {
-                assert.deepEqual(res.compiler.files, expected[res.name].files, res.name + ": only entry modules are added");
-                assert.deepEqual(res.compiler.externals, expected[res.name].externals, res.name + ": external dependencies are marked");
+                assert.deepEqual(res.compiler.files, expected[res.name].files);
+                assert.deepEqual(res.compiler.externals, expected[res.name].externals);
             }, done);
         });
 
@@ -238,9 +236,9 @@ describe("multi-bundle", function () {
                 .filter(function (res) { return !!expected[res.name]; });
 
             subscribe(observable, function (res) {
-                assert.deepEqual(res.compiler.files, [], res.name + ": no entry modules are added");
-                assert.deepEqual(res.compiler.requires, expected[res.name].requires, res.name + ": required dependencies are added");
-                assert.deepEqual(res.compiler.externals, expected[res.name].externals, res.name + ": external dependencies are marked");
+                assert.deepEqual(res.compiler.files, []);
+                assert.deepEqual(res.compiler.requires, expected[res.name].requires);
+                assert.deepEqual(res.compiler.externals, expected[res.name].externals);
             }, done);
         });
 
@@ -272,7 +270,7 @@ describe("multi-bundle", function () {
                 assert.strictEqual(typeof res.compiler.opts.deps, "function", "deps is a function");
 
                 res.compiler.opts.deps().pipe(concat(function (deps) {
-                    assert.deepEqual(R.pluck("id", deps), expected[res.name], res.name + ": all deps are included");
+                    assert.deepEqual(R.pluck("id", deps), expected[res.name]);
                 }));
             }, done);
 
