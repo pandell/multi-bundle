@@ -7,16 +7,18 @@ var assert = require("assert");
 var path = require("path");
 
 var concat = require("concat-stream");
+var mdeps = require("module-deps");
 var R = require("ramda");
 var Rx = require("rx");
 
 var multi = require("../");
 
 //-----------------------------------------------
-function BrowserifyMock(opts) {
-    if (!(this instanceof BrowserifyMock)) { return new BrowserifyMock(opts); }
+function BrowserifyMock(paths, opts) {
+    if (!(this instanceof BrowserifyMock)) { return new BrowserifyMock(paths, opts); }
 
-    this.opts = opts;
+    this.paths = (opts === undefined ? [] : paths);
+    this.opts = (opts === undefined ? paths : opts);
     this.files = [];
     this.requires = [];
     this.externals = [];
@@ -32,6 +34,10 @@ BrowserifyMock.prototype.require = function (file) {
 
 BrowserifyMock.prototype.external = function (file) {
     this.externals.push(file);
+};
+
+BrowserifyMock.prototype.deps = function (opts) {
+    return mdeps(this.paths, opts);
 };
 
 //-----------------------------------------------

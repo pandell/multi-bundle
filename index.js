@@ -5,7 +5,6 @@
 var path = require("path");
 
 var isPlainObject = require("lodash.isplainobject");
-var mdeps = require("module-deps");
 var R = require("ramda");
 var Rx = require("rx");
 var stream = require("readable-stream");
@@ -126,7 +125,9 @@ function concatDeps(config, opts, level) {
             return Rx.Observable.concat(concatDeps(entry, opts, level.concat(name)));
         }
         var fullPaths = R.map(R.applyLeft(path.resolve, opts.basedir || process.cwd()), [].concat(entry));
-        var deps = mdeps(fullPaths, opts);
+        var depOpts = R.omit(["threshold", "browserify"], opts);
+        var b = opts.browserify(fullPaths, depOpts);
+        var deps = b.deps(depOpts);
         return sort(Rx.Node.fromStream(deps)).map(R.mixin({ level: level.concat(name) }));
     }, R.keys(config)));
 }
