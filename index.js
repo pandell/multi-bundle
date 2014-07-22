@@ -130,6 +130,35 @@ function concatDeps(config, opts, level) {
 }
 
 //-----------------------------------------------
+function bundleCompilers(compilers, opts, nameTransform) {
+    if (typeof opts === "function") {
+        nameTransform = opts;
+        opts = {};
+    }
+
+    var s = stream.PassThrough({ objectMode: !!opts.objectMode });
+    Rx.Node.writeToStream(
+        compilers.flatMap(function (res) {
+            var bundle = res.compiler.bundle(opts);
+
+            return Rx.Node.fromStream(typeof nameTransform === "function"
+                ? bundle.pipe(nameTransform(res.name))
+                : bundle);
+        }),
+        s
+    );
+
+    return s;
+}
+
+//-----------------------------------------------
+function streamCompilers(compilers) {
+    var s = stream.PassThrough({ objectMode: true });
+    Rx.Node.writeToStream(compilers, s);
+    return s;
+}
+
+//-----------------------------------------------
 module.exports = function createMultiBundle(entryConfig, opts) {
     var config = {};
 
@@ -148,8 +177,10 @@ module.exports = function createMultiBundle(entryConfig, opts) {
     }
 
     var deps = concatDeps(config, opts, []);
-    var ee = Rx.Node.toEventEmitter(buildCompilers(config, deps, opts), "data");
-    ee.publish();
+    var compilers = buildCompilers(config, deps, opts);
 
-    return ee;
+    return {
+        bundle: bundleCompilers.bind(null, compilers),
+        stream: streamCompilers.bind(null, compilers)
+    };
 };

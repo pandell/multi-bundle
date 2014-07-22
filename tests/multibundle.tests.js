@@ -10,7 +10,7 @@ var concat = require("concat-stream");
 var R = require("ramda");
 var Rx = require("rx");
 
-var bundle = require("../");
+var multi = require("../");
 
 //-----------------------------------------------
 function BrowserifyMock(opts) {
@@ -52,7 +52,7 @@ describe("multi-bundle", function () {
 
         //---------------------------------------
         it("produces a single bundle", function (done) {
-            var observable = Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts));
+            var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", opts).stream());
 
             subscribe(observable, function (res) {
                 assert.strictEqual(res.name, "oneoff", "name is basename without ext");
@@ -62,7 +62,7 @@ describe("multi-bundle", function () {
 
         //---------------------------------------
         it("includes entry modules with no externals", function (done) {
-            var observable = Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts));
+            var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", opts).stream());
 
             subscribe(observable, function (res) {
                 assert.deepEqual(res.compiler.files, resolve(["oneoff.js"]), "only entry module is added");
@@ -72,7 +72,7 @@ describe("multi-bundle", function () {
 
         //---------------------------------------
         it("passes dependency stream to compiler options", function (done) {
-            var observable = Rx.Node.fromStream(bundle("./fixtures/oneoff.js", opts));
+            var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", opts).stream());
 
             subscribe(observable, function (res) {
                 assert.ok(res.compiler.opts.deps, "deps was specified");
@@ -97,7 +97,7 @@ describe("multi-bundle", function () {
 
         //---------------------------------------
         it("produces a single bundle", function (done) {
-            var observable = Rx.Node.fromStream(bundle(["./fixtures/a.js", "./fixtures/b.js"], opts));
+            var observable = Rx.Node.fromStream(multi(["./fixtures/a.js", "./fixtures/b.js"], opts).stream());
 
             subscribe(observable, function (res) {
                 assert.strictEqual(res.name, "bundle", "name is 'bundle'");
@@ -107,7 +107,7 @@ describe("multi-bundle", function () {
 
         //---------------------------------------
         it("includes entry modules with no externals", function (done) {
-            var observable = Rx.Node.fromStream(bundle(["./fixtures/a.js", "./fixtures/b.js"], opts));
+            var observable = Rx.Node.fromStream(multi(["./fixtures/a.js", "./fixtures/b.js"], opts).stream());
 
             subscribe(observable, function (res) {
                 assert.deepEqual(res.compiler.files, resolve(["a.js", "b.js"]), "only entry modules are added");
@@ -117,7 +117,7 @@ describe("multi-bundle", function () {
 
         //---------------------------------------
         it("passes dependency stream to compiler options", function (done) {
-            var observable = Rx.Node.fromStream(bundle(["./fixtures/a.js", "./fixtures/b.js"], opts));
+            var observable = Rx.Node.fromStream(multi(["./fixtures/a.js", "./fixtures/b.js"], opts).stream());
 
             subscribe(observable, function (res) {
                 assert.ok(res.compiler.opts.deps, "deps was specified");
@@ -156,7 +156,7 @@ describe("multi-bundle", function () {
             var names = ["common", "start", "group", "stop", "pause", "oneoff"];
 
             var observable = Rx.Observable.zipArray(
-                Rx.Node.fromStream(bundle(entryConfig, opts)),
+                Rx.Node.fromStream(multi(entryConfig, opts).stream()),
                 Rx.Observable.fromArray(names)
             );
 
@@ -189,7 +189,7 @@ describe("multi-bundle", function () {
                 }
             };
 
-            var observable = Rx.Node.fromStream(bundle(entryConfig, opts))
+            var observable = Rx.Node.fromStream(multi(entryConfig, opts).stream())
                 .filter(function (res) { return !!expected[res.name]; });
 
             subscribe(observable, function (res) {
@@ -211,7 +211,7 @@ describe("multi-bundle", function () {
                 }
             };
 
-            var observable = Rx.Node.fromStream(bundle(entryConfig, opts))
+            var observable = Rx.Node.fromStream(multi(entryConfig, opts).stream())
                 .filter(function (res) { return !!expected[res.name]; });
 
             subscribe(observable, function (res) {
@@ -232,7 +232,7 @@ describe("multi-bundle", function () {
                 "oneoff": resolve(["z.js", "a.js", "d.js", "oneoff.js"])
             };
 
-            var observable = Rx.Node.fromStream(bundle(entryConfig, opts));
+            var observable = Rx.Node.fromStream(multi(entryConfig, opts).stream());
 
             subscribe(observable, function (res) {
                 assert.ok(res.compiler.opts.deps, "deps was specified");
