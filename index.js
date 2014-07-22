@@ -140,7 +140,7 @@ function bundleCompilers(compilers, opts) {
 
     Rx.Node.writeToStream(
         compilers.flatMap(function (res) {
-            var bundle = res.compiler.bundle(opts);
+            var bundle = res.compiler.bundle(R.omit(["objectMode", "pipeTo"], opts));
 
             return Rx.Node.fromStream(
                 R.reduce(function (b, t) {
