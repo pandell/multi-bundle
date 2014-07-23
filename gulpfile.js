@@ -19,7 +19,7 @@ gulp.task("lint", taskFromStreams(function () {
         gulp.src([srcFiles, testFiles]),
         jshint(),
         jslint.run(),
-        jslint.report({ emitErrorAtEnd: true })
+        jslint.report({ emitErrorAtEnd: false })
     ];
 }));
 
@@ -37,7 +37,7 @@ gulp.task("clean", taskFromStreams(function () {
     ];
 }));
 
-gulp.task("example", ["lint", "test", "clean"], taskFromStreams(function () {
+gulp.task("example", ["lint", "clean"], taskFromStreams(function () {
     var browserify = require("browserify");
     var source = require("vinyl-source-stream");
 
