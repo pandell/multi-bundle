@@ -3,15 +3,14 @@
 "use strict";
 
 var path = require("path");
-var util = require("util");
 
 var isPlainObject = require("lodash.isplainobject");
 var R = require("ramda");
 var Rx = require("rx");
 var stream = require("readable-stream");
 
+var concatDeps = require("./lib/concatdeps");
 var gce = require("./lib/gce");
-var sort = require("./lib/toposort");
 
 //-----------------------------------------------
 function depsStream(deps) {
@@ -119,85 +118,6 @@ function buildCompilers(config, deps, opts) {
 }
 
 //-----------------------------------------------
-function concatDeps(config, opts, callback) {
-    function walk(config, level) {
-        return R.map(function (name) {
-            var entry = config[name];
-            if (isPlainObject(entry)) {
-                return walk(entry, level.concat(name));
-            }
-            return { name: name, entry: entry, level: level.concat(name) };
-        }, R.keys(config));
-    }
-
-    var entries = R.flatten(walk(config, []));
-    var cache = {};
-
-    function deps(e) {
-        console.log("1: ", e.name);
-        var fullPaths = R.map(R.applyLeft(path.resolve, opts.basedir || process.cwd()), [].concat(e.entry));
-        var depOpts = R.mixin({ cache: cache }, cleanOpts(opts));
-        var b = opts.browserify(fullPaths, depOpts);
-        return sort(Rx.Node.fromStream(b.deps(depOpts)))
-                .do(function (row) {
-                    console.log("2: ", row.id);
-                    cache[row.id] = row;
-                }).map(R.mixin({ level: e.level }));
-    }
-
-    var rows = [];
-
-    Rx.Observable.fromArray(entries).flatMap(function (e) {
-        return deps(e);
-    }).subscribe(
-        function onNext(row) {
-            rows.push(row);
-        },
-        function onError(err) {
-            callback(err);
-        },
-        function onEnd() {
-            callback(null, rows);
-        }
-    );
-
-/*
-    var i = 0;
-
-    var results = R.map(function (name) {
-        var entry = config[name];
-        if (isPlainObject(entry)) {
-            return Rx.Observable.concat(concatDeps(entry, opts, level.concat(name), cache));
-        }
-        var fullPaths = R.map(R.applyLeft(path.resolve, opts.basedir || process.cwd()), [].concat(entry));
-        var depOpts = R.mixin({ cache: cache }, cleanOpts(opts));
-        var b = opts.browserify(fullPaths, depOpts);
-        var deps = b.deps(depOpts);
-
-        console.log(util.inspect(depOpts.packageCache, { colors: true }));
-        console.log(util.inspect(depOpts.cache, { colors: true }));
-
-        var sorted = sort(Rx.Node.fromStream(deps));
-
-        console.log(i);
-        i += 1;
-
-        return {
-            deps: sorted.map(R.mixin({ level: level.concat(name) })),
-            cache: sorted.aggregate({}, function (c, row) {
-                c[row.id] = row;
-                console.log(row);
-            })
-        };
-    }, R.keys(config));
-
-    console.log(util.inspect(results));
-
-    return Rx.Observable.concat(R.pluck("deps", results));
-    */
-}
-
-//-----------------------------------------------
 function bundleCompilers(compilers, opts) {
     if (!opts) { opts = {}; }
 
@@ -258,8 +178,8 @@ module.exports = function createMultiBundle(entryConfig, opts) {
     opts.packageCache = {};
     opts.cache = {};
 
-    var deps = Rx.Observable.fromNodeCallback(concatDeps);
-    var compilers = buildCompilers(config, deps(config, opts), opts);
+    var deps = concatDeps(config, opts);
+    var compilers = buildCompilers(config, deps, opts);
 
     return {
         bundle: bundleCompilers.bind(null, compilers),

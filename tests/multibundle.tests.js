@@ -56,7 +56,7 @@ function subscribe(observable, onNext, done) {
         },
         done,
         function () {
-            done(error);
+            if (done) { done(error); }
         }
     );
 }
@@ -94,8 +94,8 @@ describe("multi-bundle", function () {
             var observable = Rx.Node.fromStream(multi("./fixtures/oneoff.js", R.mixin(opts, { a: "a" })).stream());
 
             subscribe(observable, function (res) {
-                var o = R.omit(["deps"], res.compiler.opts);
-                assert.deepEqual(o, { a: "a", basedir: __dirname });
+                var o = R.omit(["deps", "cache", "packageCache"], res.compiler.opts);
+                assert.deepEqual({ a: "a", basedir: __dirname }, o);
             }, done);
         });
 
@@ -112,8 +112,9 @@ describe("multi-bundle", function () {
                         R.pluck("id", deps),
                         resolve(["z.js", "a.js", "d.js", "oneoff.js"])
                     );
-                }));
-            }, done);
+                    done();
+                })).on("error", done);
+            }, null);
         });
 
     });
@@ -253,7 +254,7 @@ describe("multi-bundle", function () {
             var observable = Rx.Node.fromStream(multi(entryConfig, R.mixin(opts, { a: "a" })).stream());
 
             subscribe(observable, function (res) {
-                var o = R.omit(["deps"], res.compiler.opts);
+                var o = R.omit(["deps", "cache", "packageCache"], res.compiler.opts);
                 assert.deepEqual(o, { a: "a", basedir: __dirname }, "options match");
             }, done);
         });
