@@ -1,6 +1,7 @@
 /.*
 /gulpfile.js
-/test.js
+/build/
+/tests/
 
 # from .gitignore
 /node_modules/
