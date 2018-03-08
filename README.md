@@ -1,4 +1,6 @@
-# multi-bundle
+# ~multi-bundle~ DEPRECATED
+
+NOTE: This project was a prototype that was never used in production. If you need this functionality, switch to webpack like we did.
 
 > Produces multiple [browserify](http://browserify.org/) bundles and extracts common dependencies.
 
